@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Paste and Center Fixes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        #log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Paste and Center Fixes</h1>
+    
+    <div class="test-section">
+        <h2>📋 Paste Functionality Test</h2>
+        <p>Instructions:</p>
+        <ol>
+            <li>Copy an image to your clipboard (screenshot, copy image from web, etc.)</li>
+            <li>Click in the main app canvas area</li>
+            <li>Press <strong>Ctrl+V</strong> (or Cmd+V on Mac)</li>
+            <li>Check if the image appears on the canvas</li>
+        </ol>
+        <div id="paste-status" class="status info">Ready to test paste functionality</div>
+        <button class="test-button" onclick="testPasteEvents()">Test Paste Event Listeners</button>
+        <button class="test-button" onclick="simulatePaste()">Simulate Paste Event</button>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Center on Drawing Test</h2>
+        <p>Instructions:</p>
+        <ol>
+            <li>Draw something on the canvas or paste an image</li>
+            <li>Pan/zoom the canvas so the drawing is not centered</li>
+            <li>Click the "Center On Drawing" button (crosshair icon) in the bottom-left corner</li>
+            <li>Or press <strong>Ctrl+0</strong> (or Cmd+0 on Mac)</li>
+            <li>Check if the view centers on your drawing content</li>
+        </ol>
+        <div id="center-status" class="status info">Ready to test center functionality</div>
+        <button class="test-button" onclick="testCenterButton()">Test Center Button</button>
+        <button class="test-button" onclick="testCenterKeyboard()">Test Center Keyboard (Ctrl+0)</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Debug Information</h2>
+        <button class="test-button" onclick="checkCanvasState()">Check Canvas State</button>
+        <button class="test-button" onclick="checkEventListeners()">Check Event Listeners</button>
+        <button class="test-button" onclick="clearLog()">Clear Log</button>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        function testPasteEvents() {
+            log('🧪 Testing paste event listeners...');
+            
+            // Check if we're in the main app
+            if (typeof fabricCanvas === 'undefined') {
+                updateStatus('paste-status', 'Error: Not in main app - open frontend.html first', 'error');
+                log('❌ fabricCanvas not found - make sure you\'re testing in the main app');
+                return;
+            }
+
+            // Check for paste event listeners
+            const pasteListeners = getEventListeners ? getEventListeners(document).paste : 'Cannot check (Chrome DevTools only)';
+            log('📋 Paste event listeners: ' + JSON.stringify(pasteListeners));
+
+            updateStatus('paste-status', 'Check console for paste event listener details', 'info');
+        }
+
+        function simulatePaste() {
+            log('🧪 Simulating paste event...');
+            
+            if (typeof fabricCanvas === 'undefined') {
+                updateStatus('paste-status', 'Error: Not in main app', 'error');
+                return;
+            }
+
+            // Create a test image data URL
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw a test pattern
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillRect(0, 0, 100, 100);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('TEST', 50, 55);
+
+            const dataURL = canvas.toDataURL();
+            
+            // Convert to blob
+            fetch(dataURL)
+                .then(res => res.blob())
+                .then(blob => {
+                    // Create a paste event
+                    const clipboardData = new DataTransfer();
+                    clipboardData.items.add(blob);
+                    
+                    const pasteEvent = new ClipboardEvent('paste', {
+                        clipboardData: clipboardData,
+                        bubbles: true,
+                        cancelable: true
+                    });
+
+                    log('📋 Dispatching simulated paste event...');
+                    document.dispatchEvent(pasteEvent);
+                    
+                    updateStatus('paste-status', 'Simulated paste event dispatched - check canvas', 'success');
+                })
+                .catch(err => {
+                    log('❌ Error creating test paste: ' + err.message);
+                    updateStatus('paste-status', 'Error simulating paste', 'error');
+                });
+        }
+
+        function testCenterButton() {
+            log('🎯 Testing center button...');
+            
+            if (typeof centerCanvasView === 'undefined') {
+                updateStatus('center-status', 'Error: Not in main app', 'error');
+                log('❌ centerCanvasView function not found');
+                return;
+            }
+
+            const centerBtn = document.getElementById('center-view-btn');
+            if (!centerBtn) {
+                updateStatus('center-status', 'Error: Center button not found', 'error');
+                log('❌ Center button element not found');
+                return;
+            }
+
+            log('🎯 Clicking center button...');
+            centerBtn.click();
+            updateStatus('center-status', 'Center button clicked - check console for details', 'success');
+        }
+
+        function testCenterKeyboard() {
+            log('🎯 Testing center keyboard shortcut...');
+            
+            if (typeof centerCanvasView === 'undefined') {
+                updateStatus('center-status', 'Error: Not in main app', 'error');
+                return;
+            }
+
+            // Simulate Ctrl+0 keypress
+            const keyEvent = new KeyboardEvent('keydown', {
+                key: '0',
+                ctrlKey: true,
+                bubbles: true,
+                cancelable: true
+            });
+
+            log('🎯 Dispatching Ctrl+0 keyboard event...');
+            document.dispatchEvent(keyEvent);
+            updateStatus('center-status', 'Keyboard shortcut dispatched - check console', 'success');
+        }
+
+        function checkCanvasState() {
+            log('📊 Checking canvas state...');
+            
+            if (typeof fabricCanvas === 'undefined') {
+                log('❌ fabricCanvas not available');
+                return;
+            }
+
+            const objects = fabricCanvas.getObjects();
+            const images = objects.filter(obj => obj.type === 'image');
+            const paths = objects.filter(obj => obj.type === 'path');
+            
+            log(`📊 Canvas objects: ${objects.length} total`);
+            log(`📊 Images: ${images.length}`);
+            log(`📊 Paths: ${paths.length}`);
+            log(`📊 Canvas size: ${fabricCanvas.width}x${fabricCanvas.height}`);
+            log(`📊 Current zoom: ${typeof currentZoom !== 'undefined' ? currentZoom : 'unknown'}`);
+            
+            if (objects.length > 0) {
+                const bounds = fabricCanvas.getObjects().map(obj => obj.getBoundingRect());
+                log('📊 Object bounds: ' + JSON.stringify(bounds));
+            }
+        }
+
+        function checkEventListeners() {
+            log('📊 Checking event listeners...');
+            
+            if (typeof getEventListeners === 'function') {
+                const listeners = getEventListeners(document);
+                log('📊 Document event listeners: ' + Object.keys(listeners).join(', '));
+                
+                if (listeners.paste) {
+                    log('📊 Paste listeners: ' + listeners.paste.length);
+                }
+                if (listeners.keydown) {
+                    log('📊 Keydown listeners: ' + listeners.keydown.length);
+                }
+            } else {
+                log('📊 getEventListeners not available (Chrome DevTools only)');
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Auto-check if we're in the main app
+        window.addEventListener('load', () => {
+            if (typeof fabricCanvas !== 'undefined') {
+                log('✅ Main app detected - ready for testing');
+            } else {
+                log('ℹ️ Open this in the main app (frontend.html) to test functionality');
+            }
+        });
+    </script>
+</body>
+</html>

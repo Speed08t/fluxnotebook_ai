@@ -1,0 +1,24 @@
+{
+  "name": "fluxnotebook-ai",
+  "version": "1.0.0",
+  "description": "Modern collaborative whiteboard with AI integration",
+  "main": "app.py",
+  "scripts": {
+    "build-css": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
+    "build-css-prod": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
+    "dev": "python app.py",
+    "start": "python app.py"
+  },
+  "keywords": [
+    "whiteboard",
+    "collaboration",
+    "ai",
+    "canvas",
+    "drawing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

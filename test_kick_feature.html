@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Kick Feature</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .primary { background: #007bff; color: white; }
+        .danger { background: #dc3545; color: white; }
+        .success-btn { background: #28a745; color: white; }
+        #log {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Kick Feature Test</h1>
+    
+    <div class="test-section">
+        <h2>Connection Status</h2>
+        <div id="connectionStatus" class="status info">Disconnected</div>
+        <button id="connectBtn" class="primary" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" class="danger" onclick="disconnect()">Disconnect</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Room Management</h2>
+        <input type="text" id="userName" placeholder="Your name" value="TestUser1">
+        <button class="success-btn" onclick="createRoom()">Create Room (Become Host)</button>
+        <br><br>
+        <input type="text" id="roomId" placeholder="Room ID to join">
+        <input type="text" id="joinUserName" placeholder="Your name" value="TestUser2">
+        <button class="primary" onclick="joinRoom()">Join Room</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Current Room Info</h2>
+        <div id="roomInfo" class="status info">Not in a room</div>
+        <div id="usersList"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Kick Test</h2>
+        <input type="text" id="targetUserId" placeholder="Target User ID">
+        <button class="danger" onclick="testKick()">Kick User</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Log</h2>
+        <div id="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentUserId = null;
+        let currentRoomId = null;
+        let currentRoomHostId = null;
+        let roomUsers = new Map();
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connectionStatus');
+            if (connected) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = 'Connected';
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = 'Disconnected';
+            }
+        }
+
+        function updateRoomInfo() {
+            const roomInfoDiv = document.getElementById('roomInfo');
+            const usersListDiv = document.getElementById('usersList');
+            
+            if (currentRoomId) {
+                roomInfoDiv.className = 'status success';
+                roomInfoDiv.innerHTML = `Room: ${currentRoomId}<br>Host: ${currentRoomHostId}<br>You: ${currentUserId}`;
+                
+                let usersHtml = '<h4>Users in room:</h4>';
+                roomUsers.forEach((user, userId) => {
+                    const isHost = userId === currentRoomHostId;
+                    const isYou = userId === currentUserId;
+                    usersHtml += `<div>${user.name} (${userId.slice(0, 8)}) ${isHost ? '👑' : ''} ${isYou ? '(You)' : ''}</div>`;
+                });
+                usersListDiv.innerHTML = usersHtml;
+            } else {
+                roomInfoDiv.className = 'status info';
+                roomInfoDiv.textContent = 'Not in a room';
+                usersListDiv.innerHTML = '';
+            }
+        }
+
+        function connect() {
+            if (ws) {
+                ws.close();
+            }
+            
+            ws = new WebSocket('ws://localhost:5002/ws');
+            
+            ws.onopen = () => {
+                log('WebSocket connected');
+                updateConnectionStatus(true);
+            };
+            
+            ws.onclose = () => {
+                log('WebSocket disconnected');
+                updateConnectionStatus(false);
+                currentUserId = null;
+                currentRoomId = null;
+                currentRoomHostId = null;
+                roomUsers.clear();
+                updateRoomInfo();
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                log(`Received: ${data.type} - ${JSON.stringify(data)}`);
+                
+                switch (data.type) {
+                    case 'registered':
+                        currentUserId = data.user_id;
+                        log(`Registered as user: ${currentUserId}`);
+                        break;
+                        
+                    case 'room_created':
+                        if (data.success) {
+                            currentRoomId = data.room_id;
+                            currentRoomHostId = currentUserId; // Creator is host
+                            log(`Room created: ${currentRoomId} (You are host)`);
+                            updateRoomInfo();
+                        }
+                        break;
+                        
+                    case 'canvas_state':
+                        currentRoomId = data.room.id;
+                        currentRoomHostId = data.room.host_id;
+                        roomUsers.clear();
+                        data.users.forEach(user => {
+                            roomUsers.set(user.id, user);
+                        });
+                        log(`Canvas state received. Host: ${currentRoomHostId}`);
+                        updateRoomInfo();
+                        break;
+                        
+                    case 'user_joined':
+                        roomUsers.set(data.user.id, data.user);
+                        log(`User joined: ${data.user.name} (${data.user.id})`);
+                        updateRoomInfo();
+                        break;
+                        
+                    case 'user_left':
+                        roomUsers.delete(data.user_id);
+                        log(`User left: ${data.user_id}`);
+                        updateRoomInfo();
+                        break;
+                        
+                    case 'kick_result':
+                        log(`Kick result: ${data.success ? 'Success' : 'Failed'} for user ${data.target_user_id}`);
+                        break;
+                        
+                    case 'kicked':
+                        log(`You were kicked by ${data.kicked_by}`);
+                        currentRoomId = null;
+                        currentRoomHostId = null;
+                        roomUsers.clear();
+                        updateRoomInfo();
+                        break;
+                        
+                    case 'user_kicked':
+                        log(`User ${data.user_name} was kicked by ${data.kicked_by}`);
+                        roomUsers.delete(data.user_id);
+                        updateRoomInfo();
+                        break;
+                }
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function createRoom() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('Not connected to WebSocket');
+                return;
+            }
+            
+            const userName = document.getElementById('userName').value || 'TestUser1';
+            
+            // Register first
+            ws.send(JSON.stringify({
+                type: 'register',
+                name: userName
+            }));
+            
+            // Create room after a short delay
+            setTimeout(() => {
+                ws.send(JSON.stringify({
+                    type: 'create_room',
+                    room_name: 'Test Room',
+                    max_users: 10
+                }));
+            }, 100);
+        }
+
+        function joinRoom() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('Not connected to WebSocket');
+                return;
+            }
+            
+            const roomId = document.getElementById('roomId').value;
+            const userName = document.getElementById('joinUserName').value || 'TestUser2';
+            
+            if (!roomId) {
+                log('Please enter a room ID');
+                return;
+            }
+            
+            // Register first
+            ws.send(JSON.stringify({
+                type: 'register',
+                name: userName
+            }));
+            
+            // Join room after a short delay
+            setTimeout(() => {
+                ws.send(JSON.stringify({
+                    type: 'join_room',
+                    room_id: roomId
+                }));
+            }, 100);
+        }
+
+        function testKick() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('Not connected to WebSocket');
+                return;
+            }
+
+            let targetUserId = document.getElementById('targetUserId').value;
+            if (!targetUserId) {
+                // Auto-fill with the first non-host user if available
+                for (let [userId, user] of roomUsers) {
+                    if (userId !== currentUserId && userId !== currentRoomHostId) {
+                        targetUserId = userId;
+                        document.getElementById('targetUserId').value = userId;
+                        break;
+                    }
+                }
+
+                if (!targetUserId) {
+                    log('Please enter a target user ID or have another user in the room');
+                    return;
+                }
+            }
+
+            log(`Attempting to kick user: ${targetUserId}`);
+            ws.send(JSON.stringify({
+                type: 'kick_user',
+                target_user_id: targetUserId
+            }));
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

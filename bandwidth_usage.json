@@ -1,0 +1,275 @@
+{
+  "daily_stats": {
+    "2025-08-16": {
+      "requests": 20,
+      "data_sent": 2506297,
+      "data_received": 617476,
+      "endpoints": {
+        "health_check": 5,
+        "serve_index": 4,
+        "serve_static": 1,
+        "handle_websocket": 4,
+        "handle_group_websocket": 3,
+        "usage_report": 2,
+        "chat_with_ai": 1
+      }
+    },
+    "2025-08-18": {
+      "requests": 341,
+      "data_sent": 938147476,
+      "data_received": 3419296,
+      "endpoints": {
+        "serve_index": 78,
+        "serve_static": 29,
+        "handle_websocket": 120,
+        "download_file": 41,
+        "chat_with_ai": 9,
+        "handle_group_websocket": 34,
+        "get_uploaded_files": 28,
+        "restore_uploaded_files": 2
+      }
+    },
+    "2025-08-19": {
+      "requests": 198,
+      "data_sent": 36867761,
+      "data_received": 508774,
+      "endpoints": {
+        "serve_index": 56,
+        "serve_static": 7,
+        "handle_websocket": 87,
+        "handle_group_websocket": 40,
+        "chat_with_ai": 4,
+        "get_uploaded_files": 2,
+        "restore_uploaded_files": 2
+      }
+    },
+    "2025-08-20": {
+      "requests": 317,
+      "data_sent": 58208695,
+      "data_received": 1141438,
+      "endpoints": {
+        "serve_index": 71,
+        "serve_static": 16,
+        "handle_websocket": 115,
+        "chat_with_ai": 6,
+        "download_file": 21,
+        "handle_group_websocket": 88
+      }
+    },
+    "2025-08-21": {
+      "requests": 26,
+      "data_sent": 4456756,
+      "data_received": 323905,
+      "endpoints": {
+        "serve_index": 5,
+        "serve_static": 2,
+        "chat_with_ai": 1,
+        "handle_websocket": 9,
+        "get_uploaded_files": 1,
+        "restore_uploaded_files": 1,
+        "handle_group_websocket": 5,
+        "download_file": 2
+      }
+    },
+    "2025-08-22": {
+      "requests": 91,
+      "data_sent": 14781339,
+      "data_received": 2792617,
+      "endpoints": {
+        "serve_index": 20,
+        "serve_static": 15,
+        "handle_websocket": 33,
+        "chat_with_ai": 21,
+        "network_diagnostic": 1,
+        "handle_group_websocket": 1
+      }
+    },
+    "2025-08-31": {
+      "requests": 492,
+      "data_sent": 86444133,
+      "data_received": 875420,
+      "endpoints": {
+        "serve_index": 104,
+        "serve_static": 106,
+        "handle_websocket": 181,
+        "handle_group_websocket": 77,
+        "chat_with_ai": 21,
+        "download_file": 3
+      }
+    },
+    "2025-09-02": {
+      "requests": 166,
+      "data_sent": 23328890,
+      "data_received": 94248,
+      "endpoints": {
+        "serve_index": 26,
+        "serve_static": 26,
+        "get_uploaded_files": 2,
+        "restore_uploaded_files": 1,
+        "chat_with_ai": 1,
+        "handle_websocket": 89,
+        "handle_group_websocket": 21
+      }
+    },
+    "2025-09-04": {
+      "requests": 203,
+      "data_sent": 32937899,
+      "data_received": 166914,
+      "endpoints": {
+        "serve_index": 36,
+        "serve_static": 35,
+        "handle_websocket": 104,
+        "handle_group_websocket": 26,
+        "chat_with_ai": 2
+      }
+    },
+    "2025-09-05": {
+      "requests": 260,
+      "data_sent": 38639394,
+      "data_received": 0,
+      "endpoints": {
+        "serve_index": 41,
+        "serve_static": 61,
+        "handle_websocket": 99,
+        "handle_group_websocket": 59
+      }
+    },
+    "2025-09-06": {
+      "requests": 17,
+      "data_sent": 2865220,
+      "data_received": 0,
+      "endpoints": {
+        "serve_index": 3,
+        "serve_static": 3,
+        "handle_websocket": 11
+      }
+    },
+    "2025-09-07": {
+      "requests": 16,
+      "data_sent": 5776758,
+      "data_received": 0,
+      "endpoints": {
+        "serve_index": 6,
+        "serve_static": 9,
+        "handle_websocket": 1
+      }
+    },
+    "2025-09-29": {
+      "requests": 4,
+      "data_sent": 950919,
+      "data_received": 48529,
+      "endpoints": {
+        "serve_index": 1,
+        "serve_static": 1,
+        "chat_with_ai": 2
+      }
+    },
+    "2025-10-31": {
+      "requests": 140,
+      "data_sent": 11843150,
+      "data_received": 367609,
+      "endpoints": {
+        "serve_index": 16,
+        "serve_static": 15,
+        "handle_websocket": 68,
+        "chat_with_ai": 9,
+        "handle_group_websocket": 31,
+        "get_uploaded_files": 1
+      }
+    },
+    "2025-11-06": {
+      "requests": 29,
+      "data_sent": 4113043,
+      "data_received": 1082573,
+      "endpoints": {
+        "serve_index": 5,
+        "serve_static": 5,
+        "chat_with_ai": 4,
+        "handle_websocket": 9,
+        "handle_group_websocket": 6
+      }
+    },
+    "2025-11-17": {
+      "requests": 117,
+      "data_sent": 13269699,
+      "data_received": 608267,
+      "endpoints": {
+        "serve_index": 14,
+        "serve_static": 15,
+        "chat_with_ai": 13,
+        "handle_websocket": 45,
+        "handle_group_websocket": 30
+      }
+    },
+    "2025-11-18": {
+      "requests": 36,
+      "data_sent": 4915116,
+      "data_received": 243988,
+      "endpoints": {
+        "serve_index": 5,
+        "serve_static": 5,
+        "chat_with_ai": 7,
+        "download_file": 2,
+        "handle_websocket": 9,
+        "handle_group_websocket": 8
+      }
+    },
+    "2025-11-28": {
+      "requests": 73,
+      "data_sent": 8577088,
+      "data_received": 730064,
+      "endpoints": {
+        "serve_index": 9,
+        "serve_static": 10,
+        "chat_with_ai": 30,
+        "handle_websocket": 24
+      }
+    },
+    "2025-11-29": {
+      "requests": 44,
+      "data_sent": 7572673,
+      "data_received": 259322,
+      "endpoints": {
+        "serve_index": 8,
+        "serve_static": 8,
+        "chat_with_ai": 10,
+        "handle_websocket": 16,
+        "handle_group_websocket": 2
+      }
+    },
+    "2025-12-07": {
+      "requests": 4,
+      "data_sent": 945207,
+      "data_received": 0,
+      "endpoints": {
+        "serve_index": 1,
+        "serve_static": 1,
+        "handle_websocket": 1,
+        "handle_group_websocket": 1
+      }
+    }
+  },
+  "monthly_totals": {
+    "2025-08": {
+      "requests": 1485,
+      "data_transfer": 1151091383
+    },
+    "2025-09": {
+      "requests": 666,
+      "data_transfer": 104808771
+    },
+    "2025-10": {
+      "requests": 140,
+      "data_transfer": 12210759
+    },
+    "2025-11": {
+      "requests": 299,
+      "data_transfer": 41371833
+    },
+    "2025-12": {
+      "requests": 4,
+      "data_transfer": 945207
+    }
+  },
+  "current_month": "2025-12"
+}

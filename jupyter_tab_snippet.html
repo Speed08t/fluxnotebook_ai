@@ -1,0 +1,16 @@
+<!-- Jupyter Tab Button - Add this after the PDF Viewer button -->
+<button id="jupyter-tab" class="tab-button px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 border-b-2 border-transparent hover:text-slate-700 dark:hover:text-slate-300">
+    Jupyter
+</button>
+
+<!-- Jupyter Tab Content - Add this after the PDF Viewer content section -->
+<div id="jupyter-content" class="tab-content flex flex-col flex-1 min-h-0 hidden">
+    <div class="flex-1 min-h-0 relative">
+        <iframe id="jupyter-iframe" 
+                src="https://jupyterlite.github.io/demo/repl/index.html?kernel=python&toolbar=1&theme=JupyterLab%20Light" 
+                class="w-full h-full border-none" 
+                title="Jupyter Notebook Environment"
+                allow="cross-origin-isolated">
+        </iframe>
+    </div>
+</div>

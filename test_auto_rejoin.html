@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Rejoin Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Auto-Rejoin Room Functionality Test</h1>
+        
+        <div class="test-section">
+            <h2>Test Instructions</h2>
+            <ol>
+                <li>Open the main FluxNotebook application in another tab</li>
+                <li>Create or join a room</li>
+                <li>Come back to this test page and click "Check Session"</li>
+                <li>Refresh the main application tab</li>
+                <li>Verify that you automatically rejoin the same room</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>Session Management Tests</h2>
+            <button onclick="checkSession()">Check Current Session</button>
+            <button onclick="createTestSession()">Create Test Session</button>
+            <button onclick="clearSession()">Clear Session</button>
+            <button onclick="testSessionExpiry()">Test Session Expiry</button>
+            
+            <div id="sessionStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Manual Testing</h2>
+            <p>You can also test the functionality manually using the browser console:</p>
+            <pre>
+// Check current session
+testAutoRejoin()
+
+// Save a test session
+saveRoomSession('TEST123', 'user-456', 'TestUser')
+
+// Load session
+loadRoomSession()
+
+// Clear session
+clearRoomSession()
+            </pre>
+        </div>
+
+        <div class="test-section">
+            <h2>Expected Behavior</h2>
+            <ul>
+                <li>✅ When you join a room, session data is automatically saved</li>
+                <li>✅ When you refresh the page, you automatically rejoin the same room</li>
+                <li>✅ Session expires after 24 hours</li>
+                <li>✅ Session is cleared when you manually leave a room</li>
+                <li>✅ Auto-rejoin shows "Rejoining..." status during the process</li>
+                <li>✅ Success/failure messages are displayed appropriately</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Session management functions (copied from main app for testing)
+        function saveRoomSession(roomId, userId, userName) {
+            const sessionData = {
+                roomId: roomId,
+                userId: userId,
+                userName: userName,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('roomSession', JSON.stringify(sessionData));
+            console.log('💾 Room session saved:', sessionData);
+            return sessionData;
+        }
+
+        function loadRoomSession() {
+            try {
+                const sessionData = localStorage.getItem('roomSession');
+                if (sessionData) {
+                    const parsed = JSON.parse(sessionData);
+                    // Check if session is not too old (24 hours)
+                    const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+                    if (Date.now() - parsed.timestamp < maxAge) {
+                        console.log('📂 Room session loaded:', parsed);
+                        return parsed;
+                    } else {
+                        console.log('⏰ Room session expired, clearing');
+                        clearRoomSession();
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error loading room session:', error);
+                clearRoomSession();
+            }
+            return null;
+        }
+
+        function clearRoomSession() {
+            localStorage.removeItem('roomSession');
+            console.log('🗑️ Room session cleared');
+        }
+
+        // Test functions
+        function checkSession() {
+            const session = loadRoomSession();
+            const statusDiv = document.getElementById('sessionStatus');
+            
+            if (session) {
+                const ageHours = Math.round((Date.now() - session.timestamp) / (1000 * 60 * 60) * 100) / 100;
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        <strong>Session Found:</strong><br>
+                        Room ID: ${session.roomId}<br>
+                        User ID: ${session.userId}<br>
+                        User Name: ${session.userName}<br>
+                        Age: ${ageHours} hours
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="status info">
+                        <strong>No Session Found</strong><br>
+                        No saved room session exists or it has expired.
+                    </div>
+                `;
+            }
+        }
+
+        function createTestSession() {
+            const roomId = 'TEST' + Math.random().toString(36).substr(2, 4).toUpperCase();
+            const userId = 'user-' + Math.random().toString(36).substr(2, 8);
+            const userName = 'TestUser' + Math.floor(Math.random() * 100);
+            
+            const session = saveRoomSession(roomId, userId, userName);
+            
+            const statusDiv = document.getElementById('sessionStatus');
+            statusDiv.innerHTML = `
+                <div class="status success">
+                    <strong>Test Session Created:</strong><br>
+                    Room ID: ${session.roomId}<br>
+                    User ID: ${session.userId}<br>
+                    User Name: ${session.userName}
+                </div>
+            `;
+        }
+
+        function clearSession() {
+            clearRoomSession();
+            const statusDiv = document.getElementById('sessionStatus');
+            statusDiv.innerHTML = `
+                <div class="status info">
+                    <strong>Session Cleared</strong><br>
+                    Room session has been removed from localStorage.
+                </div>
+            `;
+        }
+
+        function testSessionExpiry() {
+            // Create a session that's already expired (25 hours old)
+            const expiredTimestamp = Date.now() - (25 * 60 * 60 * 1000);
+            const expiredSession = {
+                roomId: 'EXPIRED123',
+                userId: 'user-expired',
+                userName: 'ExpiredUser',
+                timestamp: expiredTimestamp
+            };
+            
+            localStorage.setItem('roomSession', JSON.stringify(expiredSession));
+            
+            // Now try to load it - should be cleared automatically
+            const result = loadRoomSession();
+            
+            const statusDiv = document.getElementById('sessionStatus');
+            if (result === null) {
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        <strong>Session Expiry Test Passed</strong><br>
+                        Expired session was automatically cleared.
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>Session Expiry Test Failed</strong><br>
+                        Expired session was not cleared properly.
+                    </div>
+                `;
+            }
+        }
+
+        // Check session on page load
+        window.addEventListener('load', checkSession);
+    </script>
+</body>
+</html>

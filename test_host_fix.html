@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Status Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .success-btn { background-color: #28a745; }
+        .success-btn:hover { background-color: #1e7e34; }
+        .danger-btn { background-color: #dc3545; }
+        .danger-btn:hover { background-color: #c82333; }
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .step {
+            background-color: #e9ecef;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Host Status Fix Test</h1>
+    <p>This page tests whether the host status is preserved when refreshing the page.</p>
+
+    <div class="test-section">
+        <h2>Test Instructions</h2>
+        <div class="step">
+            <strong>Step 1:</strong> Connect to the server and create a room (you become the host)
+            <br><button onclick="connectAndCreateRoom()">Connect & Create Room</button>
+        </div>
+        <div class="step">
+            <strong>Step 2:</strong> Verify you are the host and check session storage
+            <br><button onclick="checkHostStatus()">Check Host Status</button>
+        </div>
+        <div class="step">
+            <strong>Step 3:</strong> Refresh this page (F5 or Ctrl+R)
+            <br><em>The auto-rejoin should restore your host status</em>
+        </div>
+        <div class="step">
+            <strong>Step 4:</strong> After refresh, check if host status was preserved
+            <br><button onclick="checkHostStatusAfterRefresh()">Check Post-Refresh Status</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Current Status</h2>
+        <div id="status" class="status info">Not connected</div>
+        <div id="roomInfo"></div>
+        <div id="sessionInfo"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Manual Controls</h2>
+        <button onclick="clearSession()">Clear Session</button>
+        <button onclick="triggerAutoRejoin()">Trigger Auto-Rejoin</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Debug Log</h2>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentUserId = null;
+        let currentRoomId = null;
+        let currentRoomHostId = null;
+        let isAutoRejoining = false;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function updateRoomInfo() {
+            const roomInfoDiv = document.getElementById('roomInfo');
+            if (currentRoomId) {
+                const isHost = currentUserId === currentRoomHostId;
+                roomInfoDiv.innerHTML = `
+                    <strong>Room:</strong> ${currentRoomId}<br>
+                    <strong>User ID:</strong> ${currentUserId}<br>
+                    <strong>Host ID:</strong> ${currentRoomHostId}<br>
+                    <strong>Am I Host?:</strong> ${isHost ? '✅ YES' : '❌ NO'}
+                `;
+            } else {
+                roomInfoDiv.innerHTML = '<em>Not in a room</em>';
+            }
+        }
+
+        function updateSessionInfo() {
+            const sessionInfoDiv = document.getElementById('sessionInfo');
+            const sessionData = localStorage.getItem('roomSession');
+            if (sessionData) {
+                const session = JSON.parse(sessionData);
+                sessionInfoDiv.innerHTML = `
+                    <strong>Saved Session:</strong><br>
+                    - Room ID: ${session.roomId}<br>
+                    - User ID: ${session.userId}<br>
+                    - User Name: ${session.userName}<br>
+                    - Is Host: ${session.isHost ? '✅ YES' : '❌ NO'}<br>
+                    - Timestamp: ${new Date(session.timestamp).toLocaleString()}
+                `;
+            } else {
+                sessionInfoDiv.innerHTML = '<em>No saved session</em>';
+            }
+        }
+
+        function saveRoomSession(roomId, userId, userName, isHost = false) {
+            const sessionData = {
+                roomId: roomId,
+                userId: userId,
+                userName: userName,
+                isHost: isHost,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('roomSession', JSON.stringify(sessionData));
+            log(`💾 Session saved: ${JSON.stringify(sessionData)}`);
+            updateSessionInfo();
+        }
+
+        function loadRoomSession() {
+            try {
+                const sessionData = localStorage.getItem('roomSession');
+                if (sessionData) {
+                    const parsed = JSON.parse(sessionData);
+                    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+                    if (Date.now() - parsed.timestamp < maxAge) {
+                        return parsed;
+                    } else {
+                        localStorage.removeItem('roomSession');
+                        log('⏰ Session expired and cleared');
+                    }
+                }
+            } catch (error) {
+                log(`❌ Error loading session: ${error}`);
+                localStorage.removeItem('roomSession');
+            }
+            return null;
+        }
+
+        function connectAndCreateRoom() {
+            if (ws) {
+                ws.close();
+            }
+
+            ws = new WebSocket('ws://localhost:5002/ws');
+            
+            ws.onopen = () => {
+                log('✅ WebSocket connected');
+                updateStatus('Connected', 'success');
+                
+                // Register user
+                ws.send(JSON.stringify({
+                    type: 'register',
+                    name: 'TestUser'
+                }));
+            };
+
+            ws.onclose = () => {
+                log('❌ WebSocket disconnected');
+                updateStatus('Disconnected', 'error');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                log(`📨 Received: ${data.type} - ${JSON.stringify(data)}`);
+                
+                switch (data.type) {
+                    case 'registered':
+                        currentUserId = data.user_id;
+                        log(`👤 Registered as: ${currentUserId}`);
+                        
+                        // Check for auto-rejoin
+                        const savedSession = loadRoomSession();
+                        if (savedSession && savedSession.roomId) {
+                            log(`🔄 Auto-rejoining room: ${savedSession.roomId} (was host: ${savedSession.isHost})`);
+                            isAutoRejoining = true;
+                            ws.send(JSON.stringify({
+                                type: 'join_room',
+                                room_id: savedSession.roomId,
+                                was_host: savedSession.isHost || false
+                            }));
+                        } else {
+                            // Create new room
+                            log('🏠 Creating new room...');
+                            ws.send(JSON.stringify({
+                                type: 'create_room',
+                                room_name: 'Test Room',
+                                max_users: 10
+                            }));
+                        }
+                        break;
+                        
+                    case 'room_created':
+                        if (data.success) {
+                            currentRoomId = data.room_id;
+                            currentRoomHostId = currentUserId; // Creator is host
+                            log(`🎉 Room created: ${currentRoomId} (You are host)`);
+                            updateStatus(`Room created: ${currentRoomId}`, 'success');
+                            saveRoomSession(currentRoomId, currentUserId, 'TestUser', true);
+                            updateRoomInfo();
+                        }
+                        break;
+                        
+                    case 'room_joined':
+                        if (data.success) {
+                            currentRoomId = data.room_id;
+                            if (data.host_id) {
+                                currentRoomHostId = data.host_id;
+                            }
+                            
+                            if (isAutoRejoining) {
+                                log(`✅ Auto-rejoin successful! Host ID: ${currentRoomHostId}`);
+                                updateStatus(`Auto-rejoined room: ${currentRoomId}`, 'success');
+                                isAutoRejoining = false;
+                                
+                                // Update session with current host status
+                                const isHost = currentUserId === currentRoomHostId;
+                                saveRoomSession(currentRoomId, currentUserId, 'TestUser', isHost);
+                            } else {
+                                log(`✅ Joined room: ${currentRoomId}`);
+                                updateStatus(`Joined room: ${currentRoomId}`, 'success');
+                            }
+                            updateRoomInfo();
+                        } else {
+                            log(`❌ Failed to join room: ${data.message || 'Unknown error'}`);
+                            updateStatus('Failed to join room', 'error');
+                        }
+                        break;
+                        
+                    case 'host_transferred':
+                        currentRoomHostId = data.new_host_id;
+                        log(`👑 Host transferred to: ${data.new_host_name} (${data.new_host_id})`);
+                        updateRoomInfo();
+                        break;
+                }
+            };
+        }
+
+        function checkHostStatus() {
+            log('=== HOST STATUS CHECK ===');
+            log(`Current User ID: ${currentUserId}`);
+            log(`Current Room ID: ${currentRoomId}`);
+            log(`Current Host ID: ${currentRoomHostId}`);
+            log(`Am I Host?: ${currentUserId === currentRoomHostId}`);
+            
+            const session = loadRoomSession();
+            if (session) {
+                log(`Session Host Status: ${session.isHost}`);
+                if (session.isHost && currentUserId === currentRoomHostId) {
+                    log('✅ HOST STATUS CORRECT: You are the room creator and have host privileges');
+                    updateStatus('Host status correct', 'success');
+                } else if (session.isHost && currentUserId !== currentRoomHostId) {
+                    log('❌ HOST STATUS ISSUE: You are the room creator but do not have host privileges');
+                    updateStatus('Host status issue detected', 'error');
+                } else {
+                    log('ℹ️ You are not the room creator');
+                    updateStatus('Not a room creator', 'info');
+                }
+            } else {
+                log('❌ No session found');
+                updateStatus('No session found', 'warning');
+            }
+            log('=== END CHECK ===');
+            updateRoomInfo();
+            updateSessionInfo();
+        }
+
+        function checkHostStatusAfterRefresh() {
+            log('=== POST-REFRESH HOST STATUS CHECK ===');
+            checkHostStatus();
+            
+            const session = loadRoomSession();
+            if (session && session.isHost) {
+                if (currentUserId === currentRoomHostId) {
+                    log('🎉 SUCCESS: Host status was preserved after refresh!');
+                    updateStatus('✅ Host status preserved after refresh!', 'success');
+                } else {
+                    log('💥 FAILURE: Host status was lost after refresh');
+                    updateStatus('❌ Host status lost after refresh', 'error');
+                }
+            }
+        }
+
+        function clearSession() {
+            localStorage.removeItem('roomSession');
+            log('🗑️ Session cleared');
+            updateSessionInfo();
+        }
+
+        function triggerAutoRejoin() {
+            const session = loadRoomSession();
+            if (session && ws && ws.readyState === WebSocket.OPEN) {
+                log(`🔄 Triggering manual auto-rejoin for room: ${session.roomId}`);
+                isAutoRejoining = true;
+                ws.send(JSON.stringify({
+                    type: 'join_room',
+                    room_id: session.roomId,
+                    was_host: session.isHost || false
+                }));
+            } else {
+                log('❌ Cannot trigger auto-rejoin: no session or not connected');
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Initialize
+        updateStatus('Ready to test', 'info');
+        updateRoomInfo();
+        updateSessionInfo();
+    </script>
+</body>
+</html>
