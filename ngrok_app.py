@@ -15,7 +15,6 @@ from flask import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS
 from flask_sock import Sock
 import google.generativeai as genai
-from dotenv import load_dotenv
 
 class RateLimitError(Exception):
     """Raised when Gemini returns a 429 rate limit response."""
