@@ -15,6 +15,7 @@ from flask import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS
 from flask_sock import Sock
 import google.generativeai as genai
+from dotenv import load_dotenv
 
 class RateLimitError(Exception):
     """Raised when Gemini returns a 429 rate limit response."""
@@ -61,21 +62,18 @@ if BANDWIDTH_MONITORING:
     print("✅ Bandwidth monitoring enabled for ngrok Pro plan")
 
 # Configuration
+load_dotenv()
 PORT = int(os.environ.get('PORT', 5002))
-API_KEY = (
-    os.environ.get('GEMINI_API_KEY')
-    or os.environ.get('API_KEY')
-    or 'AIzaSyBdH-Gig7TYSJvT8eGpi8dDtGMGtoY1tTE'
-)
+API_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('API_KEY')
 
-if not (os.environ.get('GEMINI_API_KEY') or os.environ.get('API_KEY')):
-    logger.warning("⚠️ No GEMINI_API_KEY/API_KEY env var found. Using bundled demo key (shared & likely rate-limited).")
+# Configure Gemini AI only when a key is available.
+if API_KEY:
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel('gemini-2.5-flash')
+    logger.info("Gemini API key loaded from environment.")
 else:
-    logger.info(f"Using API key: {mask_key(API_KEY)}")
-
-# Configure Gemini AI
-genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash')
+    model = None
+    logger.warning("GEMINI_API_KEY/API_KEY is not set. AI requests need a key or will be unavailable.")
 
 # Global state for collaboration
 users: Dict[str, dict] = {}
@@ -1745,7 +1743,7 @@ def chat_with_ai():
 
         logger.info(f"📝 Message length: {len(message) if message else 0}")
         logger.info(f"🖼️ Image data present: {bool(image_data)}")
-        logger.info(f"🔑 Custom API key provided: {bool(custom_api_key)} ({mask_key(custom_api_key) if custom_api_key else 'default'})")
+        logger.info(f"🔑 Custom API key provided: {bool(custom_api_key)}")
         logger.info(f"🤖 Selected model: {selected_model}")
 
         # Quick connectivity check
@@ -1758,6 +1756,11 @@ def chat_with_ai():
 
         # Determine API key to use
         api_key = custom_api_key if custom_api_key else API_KEY
+        if not api_key:
+            return jsonify({
+                "error": "Gemini API key is not configured. Set GEMINI_API_KEY in the environment.",
+                "status": "error"
+            }), 503
 
         # Process message content and add math instructions if needed
         processed_message = message
@@ -1997,7 +2000,7 @@ if __name__ == '__main__':
         logger.info(f"Starting unified Flask app with WebSocket on port {PORT}")
         logger.info("This will only be accessible from localhost (this device)")
 
-    logger.info(f"AI features enabled with API key: {API_KEY[:10]}...")
+    logger.info("Gemini API key configured." if API_KEY else "Gemini API key is not configured.")
     logger.info("WebSocket endpoint: /ws")
 
     # Start Flask app with WebSocket support
