@@ -33,8 +33,9 @@ A collaborative drawing application with AI integration that allows multiple use
    ```
 
 2. **Set up Gemini API** (for AI features):
-   - Get an API key from Google AI Studio
-   - Update the `API_KEY` in `app.py` or set as environment variable
+   - Get an API key from Google AI Studio.
+   - Copy `.env.example` to `.env` and set `GEMINI_API_KEY=your_key`.
+   - Keep `.env` untracked; deployments should set `GEMINI_API_KEY` as a secret environment variable.
 
 ## Running the Application
 
