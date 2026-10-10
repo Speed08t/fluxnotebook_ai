@@ -17,6 +17,7 @@ import subprocess
 import tempfile
 import contextlib
 from io import StringIO
+from dotenv import load_dotenv
 import asyncio
 try:
     from PIL import Image
@@ -100,17 +101,11 @@ def mask_key(api_key: str) -> str:
         return "unset"
     return f"{api_key[:4]}…{api_key[-4:]}"
 
-# Prefer env vars for the API key; fall back to the bundled demo key.
-API_KEY = (
-    os.environ.get("GEMINI_API_KEY")
-    or os.environ.get("API_KEY")
-    or "AIzaSyBdH-Gig7TYSJvT8eGpi8dDtGMGtoY1tTE"
-)
+# Load local development secrets from .env; deployments can set these directly.
+load_dotenv()
+API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("API_KEY")
 MODEL_NAME = "gemini-2.5-flash"
 generative_model = None
-
-if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("API_KEY")):
-    print("⚠️ No GEMINI_API_KEY/API_KEY env var found. Using the bundled demo key which is shared and likely rate-limited. Set your own key via env vars or the UI.")
 
 PRIMARY_LATEX_INSTRUCTION = (
     "CRITICAL FORMATTING AND SOLVING RULES:\n"
@@ -129,25 +124,23 @@ PRIMARY_LATEX_INSTRUCTION = (
     "5.Even if the image is blank , no need to tell that again in the output , just start of with the explanation if somethiing is asked to explain or solve"
 )
 
-try:
-    print("Checking network connectivity...")
-    if not check_internet_connectivity():
-        print("⚠️ Warning: Limited internet connectivity detected (possibly mobile hotspot)")
-
-    print("Checking Google API accessibility...")
-    if not resolve_google_api_host():
-        print("⚠️ Warning: Google API host resolution issues detected")
-
-    print("Initializing Gemini model with retry logic...")
-    print(f"Using API key: {mask_key(API_KEY)}")
-    generative_model = configure_genai_with_retry(API_KEY)
-    print(f"✅ Successfully initialized Gemini model: {MODEL_NAME}")
-except Exception as e:
-    print(f"❌ Error initializing Gemini model ({MODEL_NAME}): {e}")
-    print("This is likely due to network connectivity issues with mobile hotspots.")
-    print("Try switching to a different network or using a VPN.")
-    # Consider how to handle this - app might not be fully functional
-    # For now, it will print the error and continue, endpoints will fail if model is None.
+if API_KEY:
+    try:
+        print("Checking network connectivity...")
+        if not check_internet_connectivity():
+            print("⚠️ Warning: Limited internet connectivity detected (possibly mobile hotspot)")
+        print("Checking Google API accessibility...")
+        if not resolve_google_api_host():
+            print("⚠️ Warning: Google API host resolution issues detected")
+        print("Initializing Gemini model with retry logic...")
+        generative_model = configure_genai_with_retry(API_KEY)
+        print(f"✅ Successfully initialized Gemini model: {MODEL_NAME}")
+    except Exception as e:
+        print(f"❌ Error initializing Gemini model ({MODEL_NAME}): {e}")
+        print("This is likely due to network connectivity issues with mobile hotspots.")
+        print("Try switching to a different network or using a VPN.")
+else:
+    print("GEMINI_API_KEY/API_KEY is not set. AI endpoints will be unavailable.")
 
 @app.route('/')
 def serve_index():
@@ -173,14 +166,14 @@ def interpret_image_or_text():
         try:
             genai.configure(api_key=custom_api_key)
             current_model = genai.GenerativeModel(selected_model)
-            print(f"Using custom API key {mask_key(custom_api_key)} with model: {selected_model}")
+            print(f"Using custom API key with model: {selected_model}")
         except Exception as e:
             print(f"Error with custom API key: {e}")
             return jsonify({"error": "Invalid API key provided"}), 400
     elif selected_model != MODEL_NAME:
         try:
             current_model = genai.GenerativeModel(selected_model)
-            print(f"Using default API key {mask_key(API_KEY)} with model: {selected_model}")
+            print(f"Using configured API key with model: {selected_model}")
         except Exception as e:
             print(f"Error with model selection: {e}")
             return jsonify({"error": "Invalid model selected"}), 400
